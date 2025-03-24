@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
+import { useEffect, useState } from "react";
+import { Alert, Text, View, BackHandler } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -137,7 +137,7 @@ export function Quiz() {
   }
 
   async function shakeAnimation() {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
     shake.value = withSequence(
       withTiming(3, { duration: 400, easing: Easing.bounce }),
@@ -232,11 +232,14 @@ export function Quiz() {
     setIsLoading(false);
   }, []);
 
-  // useEffect(() => {
-  //   if (quiz.questions) {
-  //     handleNextQuestion();
-  //   }
-  // }, [points]);
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleStop
+    );
+
+    return () => backHandler.remove()
+  }, []);
 
   if (isLoading) {
     return <Loading />;
