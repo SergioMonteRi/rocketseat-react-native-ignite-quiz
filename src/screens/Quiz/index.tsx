@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
+import { Audio } from "expo-av";
+import * as Haptics from "expo-haptics";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -47,7 +49,7 @@ export function Quiz() {
   const [alternativeSelected, setAlternativeSelected] = useState<null | number>(
     null
   );
-  const [statusReply, setStatusReply] = useState(0)
+  const [statusReply, setStatusReply] = useState(0);
 
   const { navigate } = useNavigation();
 
@@ -57,6 +59,16 @@ export function Quiz() {
   const shake = useSharedValue(0);
   const scrollY = useSharedValue(0);
   const cardPosition = useSharedValue(0);
+
+  const playSound = async (isCorrect: boolean) => {
+    const file = isCorrect
+      ? require("../../assets/correct.mp3")
+      : require("../../assets/wrong.mp3");
+
+    const { sound } = await Audio.Sound.createAsync(file, { shouldPlay: true });
+    sound.setPositionAsync(0);
+    sound.playAsync();
+  };
 
   function handleSkipConfirm() {
     Alert.alert("Pular", "Deseja realmente pular a questão?", [
@@ -94,11 +106,14 @@ export function Quiz() {
     }
 
     if (quiz.questions[currentQuestion].correct === alternativeSelected) {
-      setStatusReply(1)
       setPoints((prevState) => prevState + 1);
-      handleNextQuestion()
+
+      await playSound(true);
+      setStatusReply(1);
+      handleNextQuestion();
     } else {
-      setStatusReply(2)
+      await playSound(false);
+      setStatusReply(2);
       shakeAnimation();
     }
 
@@ -121,12 +136,14 @@ export function Quiz() {
     return true;
   }
 
-  function shakeAnimation() {
+  async function shakeAnimation() {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+
     shake.value = withSequence(
       withTiming(3, { duration: 400, easing: Easing.bounce }),
       withTiming(0, undefined, (fineshed) => {
-        'worklet'
-        if(fineshed) {
+        "worklet";
+        if (fineshed) {
           runOnJS(handleNextQuestion)();
         }
       })
@@ -227,8 +244,8 @@ export function Quiz() {
 
   return (
     <View style={styles.container}>
-      <OverlayFeedback status={statusReply}/>
-      
+      <OverlayFeedback status={statusReply} />
+
       <Animated.View style={fixedProgressBarStyle}>
         <Text style={styles.title}>{quiz.title}</Text>
 
